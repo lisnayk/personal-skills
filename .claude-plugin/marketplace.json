@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "personal-skills",
+  "description": "Personal Claude Code skills of Andrey Lisniak (munspel).",
+  "owner": {
+    "name": "Andrey Lisniak"
+  },
+  "plugins": [
+    {
+      "name": "munspel",
+      "source": "./plugins/munspel",
+      "description": "Personal skills: disk-space audit and safe cleanup for Windows + WSL2 + Docker Desktop, academic paper drafting in Ukrainian.",
+      "author": {
+        "name": "Andrey Lisniak"
+      },
+      "category": "productivity"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "name": "munspel",
+  "description": "Personal skills: disk-space audit and safe cleanup for Windows + WSL2 + Docker Desktop, academic paper drafting in Ukrainian.",
+  "author": {
+    "name": "Andrey Lisniak"
+  },
+  "homepage": "https://github.com/lisnayk/personal-skills",
+  "repository": "https://github.com/lisnayk/personal-skills"
+}
