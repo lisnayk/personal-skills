@@ -1,18 +1,18 @@
-#Requires -RunAsAdministrator
+﻿#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-  Compacts WSL2 and Docker Desktop VHDX files so space freed inside them goes back to the host drive.
+  Стискає VHDX-файли WSL2 і Docker Desktop, щоб звільнене всередині місце повернулося на диск хоста.
 .DESCRIPTION
-  Meant to be run BY THE USER in an elevated PowerShell. It does not delete anything inside the
-  virtual disks - it only shrinks the files. It does stop WSL (wsl --shutdown), so save your work
-  and quit Docker Desktop from the tray icon first (closing its window is not enough).
+  Призначений для запуску САМИМ КОРИСТУВАЧЕМ у PowerShell від адміністратора. Нічого не видаляє
+  всередині віртуальних дисків — лише зменшує файли. Але зупиняє WSL (wsl --shutdown), тож
+  збережи роботу й спершу закрий Docker Desktop через іконку в треї (закрити вікно замало).
 
-  Steps: find VHDX files -> refuse to run while Docker Desktop is up -> fstrim each distro ->
-  wsl --shutdown -> wait until the WSL VM is really gone -> Optimize-VHD (or diskpart fallback)
-  -> print sizes before/after.
+  Кроки: знайти VHDX -> відмовитися працювати, якщо Docker Desktop запущено -> fstrim у кожному
+  дистрибутиві -> wsl --shutdown -> дочекатися, поки ВМ WSL справді зникне -> Optimize-VHD
+  (або diskpart як запасний варіант) -> вивести розміри до і після.
 
-  Disk discovery reads HKCU, so run it elevated from the same Windows account that owns WSL,
-  or pass -Paths explicitly.
+  Пошук дисків читає HKCU, тому запускай від імені того самого облікового запису Windows,
+  якому належить WSL, або передай -Paths явно.
 .EXAMPLE
   .\compact-vhdx.ps1
 .EXAMPLE
@@ -36,7 +36,7 @@ function Get-DefaultVhdx {
     foreach ($d in Get-WslDistros) {
         $own = Join-Path $d.BasePath 'ext4.vhdx'
         if ($d.Name -notlike 'docker-desktop*' -and (Test-Path $own)) { $list.Add($own) }
-        # Docker Desktop keeps its data disk next to the distro folder: <...>\DockerDesktopWSL\disk\docker_data.vhdx
+        # Docker Desktop тримає диск даних поруч із папкою дистрибутива: <...>\DockerDesktopWSL\disk\docker_data.vhdx
         $dockerData = Join-Path (Split-Path $d.BasePath -Parent) 'disk\docker_data.vhdx'
         if (Test-Path $dockerData) { $list.Add($dockerData) }
     }
@@ -58,7 +58,7 @@ function Test-WslRunning {
 }
 
 function Show-WslClients {
-    Write-Host 'Processes that may keep WSL alive:' -ForegroundColor Yellow
+    Write-Host 'Процеси, які можуть тримати WSL запущеною:' -ForegroundColor Yellow
     $all = Get-CimInstance Win32_Process
     $byId = @{}
     foreach ($p in $all) { $byId[$p.ProcessId] = $p }
@@ -79,57 +79,57 @@ function Compress-WithDiskpart([string]$vhdx) {
             'detach vdisk'
         ) | Set-Content -Path $script -Encoding ASCII
         & diskpart.exe /s $script | Write-Host
-        if ($LASTEXITCODE -ne 0) { throw "diskpart exited with code $LASTEXITCODE" }
+        if ($LASTEXITCODE -ne 0) { throw "diskpart завершився з кодом $LASTEXITCODE" }
     } finally {
         Remove-Item $script -Force -ErrorAction SilentlyContinue
     }
 }
 
 if (-not $Paths) { $Paths = @(Get-DefaultVhdx) }
-if (-not $Paths) { throw 'No VHDX files found. Pass them with -Paths.' }
+if (-not $Paths) { throw 'VHDX-файли не знайдено. Передай їх через -Paths.' }
 
-Write-Host 'Disks to compact:' -ForegroundColor Cyan
+Write-Host 'Диски для стискання:' -ForegroundColor Cyan
 $Paths | ForEach-Object { Write-Host "  $_" }
 
 if (Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue) {
-    Write-Warning 'Docker Desktop is running. Quit it from the tray icon (Quit Docker Desktop) and run this script again.'
+    Write-Warning 'Docker Desktop запущено. Закрий його через іконку в треї (Quit Docker Desktop) і запусти скрипт ще раз.'
     exit 1
 }
 
 if (-not $SkipTrim) {
     foreach ($d in Get-WslDistros | Where-Object { $_.Name -notlike 'docker-desktop*' }) {
-        Write-Host "fstrim in $($d.Name)..." -ForegroundColor Cyan
+        Write-Host "fstrim у $($d.Name)..." -ForegroundColor Cyan
         & wsl.exe -d $d.Name -u root -e fstrim -av 2>&1 | Write-Host
     }
 }
 
-Write-Host 'Stopping WSL (wsl --shutdown)...' -ForegroundColor Cyan
+Write-Host 'Зупиняю WSL (wsl --shutdown)...' -ForegroundColor Cyan
 & wsl.exe --shutdown
 
 $deadline = (Get-Date).AddSeconds($WaitSeconds)
 while ((Test-WslRunning) -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 2 }
 if (Test-WslRunning) {
-    Write-Warning "WSL is still running after $WaitSeconds s - something restarted it."
+    Write-Warning "WSL усе ще працює через $WaitSeconds с — її хтось знову запустив."
     Show-WslClients
-    Write-Warning 'Close those clients (Docker Desktop, WSL terminals, IDE remote sessions, Codex), then run the script again.'
+    Write-Warning 'Закрий ці клієнти (Docker Desktop, WSL-термінали, віддалені сесії IDE, Codex) і запусти скрипт ще раз.'
     exit 1
 }
-# The VM process can be gone a few seconds before the disk handles are released.
+# Процес ВМ може зникнути на кілька секунд раніше, ніж звільняться дескриптори дисків.
 Start-Sleep -Seconds 8
 
 $useHyperV = [bool](Get-Command Optimize-VHD -ErrorAction SilentlyContinue)
-if (-not $useHyperV) { Write-Host 'Optimize-VHD (Hyper-V module) not found - using diskpart.' -ForegroundColor Yellow }
+if (-not $useHyperV) { Write-Host 'Optimize-VHD (модуль Hyper-V) не знайдено — використовую diskpart.' -ForegroundColor Yellow }
 
 $results = foreach ($vhdx in $Paths) {
     $before = (Get-Item $vhdx).Length
     $status = 'ok'
-    Write-Host "Compacting $vhdx ..." -ForegroundColor Cyan
+    Write-Host "Стискаю $vhdx ..." -ForegroundColor Cyan
     try {
         if ($useHyperV) { Optimize-VHD -Path $vhdx -Mode Full -ErrorAction Stop } else { Compress-WithDiskpart $vhdx }
     } catch {
         $status = $_.Exception.Message
         if ($status -match '0x80070020') {
-            $status = 'file is in use - WSL or Docker started again'
+            $status = 'файл зайнятий — WSL або Docker знову запустилися'
             Show-WslClients
         }
         Write-Warning $status
@@ -145,4 +145,4 @@ $results = foreach ($vhdx in $Paths) {
 }
 
 $results | Format-Table -AutoSize | Out-String -Width 250 | Write-Host
-Write-Host 'Done. You can start Docker Desktop and WSL again.' -ForegroundColor Green
+Write-Host 'Готово. Можна знову запускати Docker Desktop і WSL.' -ForegroundColor Green

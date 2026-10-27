@@ -1,9 +1,9 @@
-<#
+﻿<#
 .SYNOPSIS
-  Sizes of the direct children (folders and files) of a directory.
+  Розміри безпосередніх дочірніх елементів (папок і файлів) каталогу.
 .DESCRIPTION
-  Read-only. Walks the tree with .NET enumeration (much faster than Get-ChildItem -Recurse),
-  does not follow reparse points (junctions/symlinks), silently skips inaccessible folders.
+  Лише читання. Обходить дерево через .NET (значно швидше за Get-ChildItem -Recurse),
+  не заходить у точки повторного аналізу (junction/symlink), мовчки пропускає недоступні папки.
 .EXAMPLE
   .\dirsizes.ps1 -Root D:\ -Top 40
 #>
@@ -44,4 +44,4 @@ foreach ($f in $rootInfo.EnumerateFiles()) {
 $sum = ($items | Measure-Object GB -Sum).Sum
 $items | Where-Object { $_.GB -ge $MinGB } | Sort-Object GB -Descending | Select-Object -First $Top |
     Format-Table -AutoSize | Out-String -Width 250
-"Total of all children: {0:N2} GB ({1} items)" -f $sum, $items.Count
+"Разом усі дочірні елементи: {0:N2} ГБ ({1} шт.)" -f $sum, $items.Count

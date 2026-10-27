@@ -1,10 +1,11 @@
-<#
+﻿<#
 .SYNOPSIS
-  Finds regenerable dependency folders (node_modules, vendor, .venv, ...) and their sizes.
+  Знаходить відновлювані папки залежностей (node_modules, vendor, .venv, ...) та їхні розміри.
 .DESCRIPTION
-  Read-only. Does not descend into a matched folder (nested node_modules are counted once,
-  as part of the outer one), skips .git, reparse points, $RECYCLE.BIN and System Volume Information.
-  "Installed" is the folder's LastWriteTime - a rough hint of when dependencies were last installed.
+  Лише читання. У знайдену папку не заходить (вкладені node_modules рахуються один раз,
+  як частина зовнішньої), пропускає .git, точки повторного аналізу, $RECYCLE.BIN і
+  System Volume Information.
+  "Installed" — LastWriteTime папки: приблизна підказка, коли залежності востаннє встановлювали.
 .EXAMPLE
   .\find-deps-dirs.ps1 -Roots D:\OS\domains, D:\projects -Csv C:\tmp\deps.csv
 #>
@@ -63,15 +64,15 @@ foreach ($root in $Roots) {
 
 if ($Csv) { $found | Export-Csv -NoTypeInformation -Encoding UTF8 $Csv }
 
-"== By kind"
+"== За типом"
 $found | Group-Object Kind | ForEach-Object {
     [pscustomobject]@{ Kind = $_.Name; Count = $_.Count; GB = [math]::Round(($_.Group | Measure-Object GB -Sum).Sum, 2) }
 } | Sort-Object GB -Descending | Format-Table -AutoSize | Out-String -Width 250
 
-"== By area (first level under each root)"
+"== За областю (перший рівень під кожним коренем)"
 $found | Group-Object Area | ForEach-Object {
     [pscustomobject]@{ GB = [math]::Round(($_.Group | Measure-Object GB -Sum).Sum, 2); Count = $_.Count; Area = $_.Name }
 } | Sort-Object GB -Descending | Select-Object -First $Top | Format-Table -AutoSize | Out-String -Width 250
 
-"== Largest folders"
+"== Найбільші папки"
 $found | Sort-Object GB -Descending | Select-Object -First $Top GB, Installed, Path | Format-Table -AutoSize | Out-String -Width 300

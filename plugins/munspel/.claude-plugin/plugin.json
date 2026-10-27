@@ -1,6 +1,6 @@
 {
   "name": "munspel",
-  "description": "Personal skills: disk-space audit and safe cleanup for Windows + WSL2 + Docker Desktop, academic paper drafting in Ukrainian.",
+  "description": "Особисті скіли: аудит і безпечне очищення місця на диску для Windows + WSL2 + Docker Desktop, наукові статті українською.",
   "author": {
     "name": "Andrey Lisniak"
   },

@@ -1,16 +1,18 @@
-<#
+﻿<#
 .SYNOPSIS
-  Git state of every project folder under a directory: is it safe to remove the local copy?
+  Стан git для кожної папки проєкту в каталозі: чи можна безпечно видалити локальну копію?
 .DESCRIPTION
-  Read-only. Uses `git -c safe.directory=*` so repos owned by an old Windows SID can be read
-  without touching the global git config, and --no-optional-locks so the index is not rewritten.
+  Лише читання. Використовує `git -c safe.directory=*`, щоб читати репозиторії, які належать
+  SID старої інсталяції Windows, не чіпаючи глобальний конфіг git, і --no-optional-locks,
+  щоб не переписувати index.
 
-  Verdict:
-    safe        - has a remote, no uncommitted changes, no unpushed commits, no stash
-    local-work  - something exists only locally (see Dirty / Unpushed / Stash / Remote)
-    no-git      - not a git repo: everything in it exists only here
-  Gitignored files (.env, local dumps) are never on the remote - check HasEnv before removing.
-  Dirty can be inflated by CRLF / filemode differences when Windows git reads repos made elsewhere.
+  Вердикт:
+    safe        - є remote, немає незакомічених змін, незапушених комітів і stash
+    local-work  - щось існує лише локально (див. Dirty / Unpushed / Stash / Remote)
+    no-git      - не git-репозиторій: усе в ньому існує лише тут
+  Файли з .gitignore (.env, локальні дампи) ніколи не потрапляють на remote — перед видаленням
+  перевір HasEnv. Dirty може бути завищене через різницю CRLF / filemode, коли Windows git
+  читає репозиторії, створені деінде.
 .EXAMPLE
   .\repo-audit.ps1 -Root D:\OS\domains -CompareWith \\wsl.localhost\Ubuntu\home\me\projects -Csv C:\tmp\repos.csv
 #>
@@ -74,7 +76,7 @@ $rows = foreach ($d in Get-ChildItem $Root -Directory -Force) {
 
 if ($Csv) { $rows | Export-Csv -NoTypeInformation -Encoding UTF8 $Csv }
 
-"== Summary by verdict"
+"== Підсумок за вердиктом"
 $rows | Group-Object Verdict | ForEach-Object {
     [pscustomobject]@{ Verdict = $_.Name; Count = $_.Count; GB = [math]::Round(($_.Group | Measure-Object GB -Sum).Sum, 2) }
 } | Format-Table -AutoSize | Out-String -Width 250
